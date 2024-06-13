@@ -36,9 +36,9 @@ if 'sort_column' not in st.session_state:
 
 # Master DataFrame Options
 if section == 'Master DataFrame Options':
-    st.subheader("Master DataFrame Options")
+    st.sidebar.subheader("Master DataFrame Options")
 
-    if st.button('Create a master dataframe'):
+    if st.sidebar.button('Create a master dataframe'):
         if dfs:
             st.session_state.master_df_created = True
             st.session_state.master_df = pd.concat(dfs.values(), ignore_index=True)
@@ -48,21 +48,21 @@ if section == 'Master DataFrame Options':
             st.write("No dataframes to concatenate")
 
     if st.session_state.master_df_created:
-        if st.button('Show DataFrame Info'):
+        if st.sidebar.button('Show DataFrame Info'):
             buffer = io.StringIO()
             st.session_state.master_df.info(buf=buffer)
             s = buffer.getvalue()
             st.text(s)
 
-        if st.button('Show Null Values'):
+        if st.sidebar.button('Show Null Values'):
             st.write(st.session_state.master_df.isnull().sum())
 
-        if st.button('Drop Null Values from master dataframe'):
+        if st.sidebar.button('Drop Null Values from master dataframe'):
             st.session_state.master_df = st.session_state.master_df.dropna()
             st.subheader('Master DataFrame after Dropping Null Values')
             st.write(st.session_state.master_df.head())
 
-        if st.button('Convert TIMESTAMP to datetime and set as index'):
+        if st.sidebar.button('Convert TIMESTAMP to datetime and set as index'):
             if 'TIMESTAMP' in st.session_state.master_df.columns:
                 st.session_state.master_df['TIMESTAMP'] = pd.to_datetime(st.session_state.master_df['TIMESTAMP'], infer_datetime_format=True)
                 st.session_state.master_df = st.session_state.master_df.set_index(['TIMESTAMP'])
@@ -126,7 +126,8 @@ if section == 'Plotting Options' and st.session_state.master_df_created:
         
         fig, ax = plt.subplots(figsize=figureSize)
         df.plot(kind=plotkind, x=Xcolumn, y=Ycolumn, ax=ax)
-       
+        ax.set_xticks(range(len(df)))
+        ax.set_xticklabels(df[Xcolumn])
         plt.xticks(rotation=90, ha='right')
         plt.tight_layout()
         
