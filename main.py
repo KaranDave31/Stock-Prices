@@ -147,24 +147,26 @@ if section == 'Other Financial Options' and st.session_state.master_df_created:
     st.session_state.end_date = end_date
 
 
-    # symbols = st.session_state.master_df['SYMBOL'].unique() if 'SYMBOL' in st.session_state.master_df.columns else []
-    # selected_symbol = st.sidebar.selectbox('Select Symbol', symbols)
+    symbols = st.session_state.master_df['SYMBOL'].unique() if 'SYMBOL' in st.session_state.master_df.columns else []
+    selected_symbol = st.sidebar.selectbox('Select Symbol', symbols)
 
-    def calculate_daily_returns(startDate, endDate):
+    def calculate_daily_returns(startDate, endDate,symbol):
         df = st.session_state.master_df[startDate:endDate]
+        df = df[df['SYMBOL'] == symbol]
         df['Daily Return'] = df['CLOSE'].pct_change()
         return df[['SYMBOL', 'SERIES', 'Daily Return']].dropna()
 
-    def calculate_cumulative_returns(startDate, endDate):
-        df = calculate_daily_returns(startDate, endDate)
+    def calculate_cumulative_returns(startDate, endDate,symbol):
+        df = calculate_daily_returns(startDate, endDate,symbol)
+        df = df[df['SYMBOL'] == symbol]
         df['Cumulative Return'] = (1 + df['Daily Return']).cumprod()
         return df[['SYMBOL', 'SERIES', 'Cumulative Return']].dropna()
 
     if st.sidebar.button('Display daily returns', key='display_daily_returns'):
-        st.write(calculate_daily_returns(st.session_state.start_date, st.session_state.end_date))
+        st.write(calculate_daily_returns(st.session_state.start_date, st.session_state.end_date,selected_symbol))
 
     if st.sidebar.button('Display cumulative return', key='display_cumulative_return'):
-        st.write(calculate_cumulative_returns(st.session_state.start_date, st.session_state.end_date))
+        st.write(calculate_cumulative_returns(st.session_state.start_date, st.session_state.end_date,selected_symbol))
 
 
 
