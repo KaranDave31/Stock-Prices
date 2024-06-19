@@ -130,8 +130,8 @@ if section == 'Sorting Options' and st.session_state.master_df_created:
     end_date = st.sidebar.date_input('End Date', value=st.session_state.end_date, key='sort_end_date')
 
     
-    symbols = st.session_state.master_df['SYMBOL'].unique() if 'SYMBOL' in st.session_state.master_df.columns else []
-    selected_symbol = st.sidebar.selectbox('Select Symbol', symbols)
+    #symbols = st.session_state.master_df['SYMBOL'].unique() if 'SYMBOL' in st.session_state.master_df.columns else []
+    #selected_symbol = st.sidebar.selectbox('Select Symbol', symbols)
 
     # Update session state with selected dates
     st.session_state.start_date = start_date
@@ -143,13 +143,13 @@ if section == 'Sorting Options' and st.session_state.master_df_created:
 
 
     if st.sidebar.button('Display Sorted DataFrame in Ascending Order', key='sort_asc'):
-        st.session_state.master_df = st.session_state.master_df[st.session_state.master_df['SYMBOL'] == selected_symbol]
+        #st.session_state.master_df = st.session_state.master_df[st.session_state.master_df['SYMBOL'] == selected_symbol]
         df_sorted_asc = st.session_state.master_df.loc[st.session_state.start_date:st.session_state.end_date].sort_values([st.session_state.sort_column,st.session_state.sort_column2])
         st.subheader('Sorted DataFrame (Ascending Order)')
         st.write(df_sorted_asc)
 
     if st.sidebar.button('Display Sorted DataFrame in Descending Order', key='sort_desc'):
-        st.session_state.master_df = st.session_state.master_df[st.session_state.master_df['SYMBOL'] == selected_symbol]
+        #st.session_state.master_df = st.session_state.master_df[st.session_state.master_df['SYMBOL'] == selected_symbol]
         df_sorted_desc = st.session_state.master_df.loc[st.session_state.start_date:st.session_state.end_date].sort_values([st.session_state.sort_column,st.session_state.sort_column2], ascending=False)
         st.subheader('Sorted DataFrame (Descending Order)')
         st.write(df_sorted_desc)
