@@ -3,12 +3,11 @@ import pandas as pd
 import os
 import io
 import matplotlib.pyplot as plt
-
-
+from prophet.plot import plot_plotly
+from plotly import graph_objs as go
 
 st.title('Stock Analysis Project')
 
-# Sidebar for navigation
 st.sidebar.title('Navigation')
 section = st.sidebar.selectbox('Go to', ['Master DataFrame Options', 'Sorting Options', 'Plotting Options', 'Other Financial Options'])
 
@@ -39,45 +38,6 @@ if 'sort_column' not in st.session_state:
 if 'sort_column2' not in st.session_state:
         st.session_state.sort_column2 = 'OPEN'
 
-
-# def paginate(
-#     df: Union[pd.Series, pd.DataFrame],
-#     page_size: int = 15,
-#     fillna_with_empty_string: bool = False,
-# ):
-#     """Creates a paginator for a pandas Series or DataFrame using Streamlit.
-
-#     Args:
-#         df: A pandas.Series or DataFrame.
-#         page_size: The number of rows to display per page.
-#         fillna_with_empty_string: Fills NaNs with empty strings for better visualization.
-#     """
-#     if len(df.shape) == 1:
-#         n = df.shape[0]
-#         m = 1
-#     else:
-#         n, m = df.shape
-
-#     if fillna_with_empty_string:
-#         df = df.fillna("")
-
-#     last_page, remainder = divmod(n, page_size)
-#     if remainder:
-#         last_page += 1
-
-#     # Display the paginator in the sidebar
-#     page_number = st.sidebar.number_input('Page number', min_value=1, max_value=last_page, step=1, value=st.session_state.page_number, key='page_number_input')
-
-#     # Update the session state if the user changes the page number
-#     if page_number != st.session_state.page_number:
-#         st.session_state.page_number = page_number
-
-#     start_idx = (st.session_state.page_number - 1) * page_size
-#     end_idx = start_idx + page_size
-#     df_page = df.iloc[start_idx:end_idx]
-
-#     return df_page
-
 # Master DataFrame Options
 if section == 'Master DataFrame Options':
     st.sidebar.subheader("Master DataFrame Options")
@@ -106,9 +66,11 @@ if section == 'Master DataFrame Options':
             st.write(st.session_state.master_df.isnull().sum())
 
         if st.sidebar.button('Drop Null Values from master dataframe'):
+            st.session_state.master_df['SERIES'].fillna('NONE', inplace=True)
             st.session_state.master_df = st.session_state.master_df.dropna()
             st.subheader('Master DataFrame after Dropping Null Values')
             st.write(st.session_state.master_df)
+
 
         if st.sidebar.button('Convert TIMESTAMP to datetime and set as index'):
             if 'TIMESTAMP' in st.session_state.master_df.columns:
@@ -130,26 +92,23 @@ if section == 'Sorting Options' and st.session_state.master_df_created:
     end_date = st.sidebar.date_input('End Date', value=st.session_state.end_date, key='sort_end_date')
 
     
-    #symbols = st.session_state.master_df['SYMBOL'].unique() if 'SYMBOL' in st.session_state.master_df.columns else []
-    #selected_symbol = st.sidebar.selectbox('Select Symbol', symbols)
-
     # Update session state with selected dates
     st.session_state.start_date = start_date
     st.session_state.end_date = end_date
 
-    columns = ('OPEN', 'CLOSE', 'HIGH', 'LOW', 'LAST', 'PREVCLOSE', 'TOTTRDVAL', 'TOTALTRADES')
-    st.session_state.sort_column = st.sidebar.selectbox('Select column 1 to sort by', columns, index=columns.index(st.session_state.sort_column))
-    st.session_state.sort_column2 = st.sidebar.selectbox('Select column 2 to sort by', columns, index=columns.index(st.session_state.sort_column2))
+    columns = ('SERIES','OPEN', 'CLOSE', 'HIGH', 'LOW', 'LAST', 'PREVCLOSE', 'TOTTRDVAL', 'TOTALTRADES')
+    st.session_state.sort_column = st.sidebar.selectbox('Select column 1 to sort by', columns)
+    st.session_state.sort_column2 = st.sidebar.selectbox('Select column 2 to sort by', columns)
 
 
     if st.sidebar.button('Display Sorted DataFrame in Ascending Order', key='sort_asc'):
-        #st.session_state.master_df = st.session_state.master_df[st.session_state.master_df['SYMBOL'] == selected_symbol]
+        # st.session_state.master_df = st.session_state.master_df[st.session_state.master_df['SYMBOL'] == selected_symbol]
         df_sorted_asc = st.session_state.master_df.loc[st.session_state.start_date:st.session_state.end_date].sort_values([st.session_state.sort_column,st.session_state.sort_column2])
         st.subheader('Sorted DataFrame (Ascending Order)')
         st.write(df_sorted_asc)
 
     if st.sidebar.button('Display Sorted DataFrame in Descending Order', key='sort_desc'):
-        #st.session_state.master_df = st.session_state.master_df[st.session_state.master_df['SYMBOL'] == selected_symbol]
+        # st.session_state.master_df = st.session_state.master_df[st.session_state.master_df['SYMBOL'] == selected_symbol]
         df_sorted_desc = st.session_state.master_df.loc[st.session_state.start_date:st.session_state.end_date].sort_values([st.session_state.sort_column,st.session_state.sort_column2], ascending=False)
         st.subheader('Sorted DataFrame (Descending Order)')
         st.write(df_sorted_desc)
@@ -158,44 +117,61 @@ if section == 'Sorting Options' and st.session_state.master_df_created:
 if section == 'Plotting Options' and st.session_state.master_df_created:
     st.sidebar.subheader("Plotting Options")
 
+    # Date inputs for plotting
     start_date_plot = st.sidebar.date_input('Start Date', value=st.session_state.start_date, key='plot_start_date')
     end_date_plot = st.sidebar.date_input('End Date', value=st.session_state.end_date, key='plot_end_date')
 
-    
-    symbols = st.session_state.master_df['SYMBOL'].unique() if 'SYMBOL' in st.session_state.master_df.columns else []
-    symbol1 = st.sidebar.selectbox('Select Symbol 1', symbols)
-    symbol2 = st.sidebar.selectbox('Select Symbol 2', symbols)
-    selected_symbol =[symbol1,symbol2]
+    # Series selection
+    series = st.session_state.master_df['SERIES'].unique()
+    selected_series1 = st.sidebar.selectbox('Select Series 1', series)
+    selected_series2 = st.sidebar.selectbox('Select Series 2', series)
+
+
+    # Filter dataframe based on selected series for symbol selection
+    filtered_df1 = st.session_state.master_df[st.session_state.master_df['SERIES'] == selected_series1]
+    symbols1 = filtered_df1['SYMBOL'].unique() if 'SYMBOL' in filtered_df1.columns else []
+
+    filtered_df2 = st.session_state.master_df[st.session_state.master_df['SERIES'] == selected_series2]
+    symbols2 = filtered_df2['SYMBOL'].unique() if 'SYMBOL' in filtered_df2.columns else []
+
+
+    # Symbol selection
+    symbol1 = st.sidebar.selectbox('Select Symbol 1', symbols1)
+    symbol2 = st.sidebar.selectbox('Select Symbol 2', symbols2)
+    selected_symbol = [symbol1, symbol2]
 
     # Update session state with selected dates
     st.session_state.start_date_plot = start_date_plot
     st.session_state.end_date_plot = end_date_plot
 
+    # Select plot type
     if 'plot_graph' not in st.session_state:
         st.session_state.plot_graph = 'line'
 
-    plot_types = ('line', 'area')
-    st.session_state.plot_graph = st.sidebar.selectbox('Select plot type', plot_types, index=plot_types.index(st.session_state.plot_graph), key='plot_type')
-
+    
+    # Select y column for plotting
     columns = ('OPEN', 'CLOSE', 'HIGH', 'LOW', 'LAST', 'PREVCLOSE', 'TOTTRDVAL', 'TOTALTRADES')
     y_column = st.sidebar.selectbox('Select y column', columns, key='x_column')
 
-    def display_plot(startDate, endDate, Ycolumn, plotkind='line', figureSize=(15, 6)):
+    def display_plot(startDate, endDate, Ycolumn, plotkind='line'):
         df = st.session_state.master_df.loc[startDate:endDate]
         df = df[df['SYMBOL'].isin(selected_symbol)]
-        
-        fig, ax = plt.subplots(figsize=figureSize)
+
+        fig = go.Figure()
+
         for symbol in selected_symbol:
             symbol_df = df[df['SYMBOL'] == symbol]
-            symbol_df.plot(kind=plotkind, y=Ycolumn, ax=ax, label=symbol)
-        
-        plt.tight_layout()
-        st.pyplot(fig)
+            fig.add_trace(go.Scatter(x=symbol_df.index, y=symbol_df[Ycolumn], mode='lines', name=symbol))
 
+        fig.update_layout(title='Time Series Data', xaxis_rangeslider_visible=True)
+        st.plotly_chart(fig)
 
     if st.sidebar.button('Display plot', key='display_plot'):
         display_plot(st.session_state.start_date_plot, st.session_state.end_date_plot, y_column, st.session_state.plot_graph)
 
+
+
+        
 # Other Financial Options (placeholder for additional functionality)
 if section == 'Other Financial Options' and st.session_state.master_df_created:
     st.sidebar.subheader("Other Financial Options")
@@ -228,6 +204,7 @@ if section == 'Other Financial Options' and st.session_state.master_df_created:
 
     if st.sidebar.button('Display cumulative return', key='display_cumulative_return'):
         st.write(calculate_cumulative_returns(st.session_state.start_date, st.session_state.end_date,selected_symbol))
+
 
 
 
