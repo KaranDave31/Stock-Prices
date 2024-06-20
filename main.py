@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import io
 import matplotlib.pyplot as plt
-from prophet.plot import plot_plotly
 from plotly import graph_objs as go
 
 st.title('Stock Analysis Project')
