@@ -203,97 +203,66 @@ if section == 'Other Financial Options' and st.session_state.master_df_created:
 
 
 if section == 'Moving Average' and st.session_state.master_df_created:
-    def extract_data(selected_symbol):
-        data_folder = os.path.join(os.getcwd(), 'data')
-        st.write(data_folder)
-        all_files = [file for file in os.listdir(data_folder) if file.endswith('.zip')]
-
+      def extract_data_from_uploaded_files(uploaded_files, selected_symbol):
         df_lists = []
-        st.write(all_files)
-        total_files = len(all_files)
-        progress_bar = st.progress(0)
-        
-        for i, zip_file in enumerate(all_files):
-            with zipfile.ZipFile(os.path.join(data_folder, zip_file), 'r') as zip_ref:
+        for uploaded_file in uploaded_files:
+            with zipfile.ZipFile(uploaded_file, 'r') as zip_ref:
                 for filename in zip_ref.namelist():
-                    # st.write(filename)
                     if filename.endswith('_NSE.csv'):
-                        # st.write(filename)
                         with zip_ref.open(filename) as file:
                             df = pd.read_csv(file)
                             df['TIMESTAMP'] = pd.to_datetime(df['TIMESTAMP'], format='mixed')
                             df = df.set_index(['TIMESTAMP'])
-                            
-
                             if selected_symbol in df['SYMBOL'].values:
                                 df_lists.append(df[df['SYMBOL'] == selected_symbol])
-                            # st.write(df_lists)
-                            
-            progress_bar.progress((i + 1) / total_files)
-
         if df_lists:
             return pd.concat(df_lists).sort_index()
         else:
             return pd.DataFrame()
-    
+
     def calc_movingAvg(df, duration):
         return df['CLOSE'].rolling(window=duration).mean()
-
 
     def display_plot(Ycolumn, durations):
         st.session_state.master_df = st.session_state.master_df[st.session_state.master_df['SYMBOL'] == symbol1]
         st.session_state.master_df = st.session_state.master_df.sort_index()
-        st.write(st.session_state.master_df)
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=st.session_state.master_df.index, y=st.session_state.master_df[Ycolumn], mode='lines', name='Actual'))
-        
-        colors = ['red', 'green', 'orange', 'purple','yellow']  # Define a list of colors for different moving averages
 
+        colors = ['blue', 'red', 'green', 'purple', 'orange']
         for i, duration in enumerate(durations):
             moving_avg = calc_movingAvg(st.session_state.master_df, duration)
-            color = colors[i % len(colors)]  # Cycle through colors
-            fig.add_trace(go.Scatter(x=st.session_state.master_df.index, y=moving_avg, mode='lines', name=f'Moving Avg {duration} days', line=dict(color=color)))
+            fig.add_trace(go.Scatter(x=st.session_state.master_df.index, y=moving_avg, mode='lines', name=f'Moving Avg {duration}', line=dict(color=colors[i % len(colors)])))
 
         fig.update_layout(title='Moving Average Plot', xaxis_rangeslider_visible=True)
         st.plotly_chart(fig)
-
-
-
-
-
-
-
 
     start_date_plot = st.sidebar.date_input('Start Date', value=st.session_state.start_date, key='plot_start_date')
     end_date_plot = st.sidebar.date_input('End Date', value=st.session_state.end_date, key='plot_end_date')
 
     series = st.session_state.master_df['SERIES'].unique()
-    selected_series1 = st.sidebar.selectbox('Select Series ', series)
+    selected_series1 = st.sidebar.selectbox('Select Series', series)
     filtered_df1 = st.session_state.master_df[st.session_state.master_df['SERIES'] == selected_series1]
     symbols1 = filtered_df1['SYMBOL'].unique() if 'SYMBOL' in filtered_df1.columns else []
-    symbol1 = st.sidebar.selectbox('Select Symbol ', symbols1)
+    symbol1 = st.sidebar.selectbox('Select Symbol', symbols1)
 
     st.session_state.start_date_plot = start_date_plot
     st.session_state.end_date_plot = end_date_plot
     
     duration_options = {'1 W': 5, '1 M': 22, '3 M': 66, '6 M': 132, '1 Y': 264}
-    selected_duration = st.sidebar.multiselect("Select Duration", list(duration_options.keys()))
-    # selected_duration = st.sidebar.selectbox('Select Duration', list(duration_options.keys()))
+    selected_durations = st.sidebar.multiselect("Select Duration", list(duration_options.keys()))
+    selected_durations_values = [duration_options[d] for d in selected_durations]
 
-    if st.sidebar.button('Extract More Data'):
-        extracted_data = extract_data(symbol1)
+    uploaded_files = st.sidebar.file_uploader("Upload Zip Files", accept_multiple_files=True, type="zip")
+
+    if st.sidebar.button('Extract More Data') and uploaded_files:
+        extracted_data = extract_data_from_uploaded_files(uploaded_files, symbol1)
         st.write(extracted_data)
         st.session_state.master_df = pd.concat([st.session_state.master_df, extracted_data]).drop_duplicates()
-        st.write(st.session_state.master_df)
-
-    
 
     if st.sidebar.button('Display plot'):
-        duration = [duration_options[duration] for duration in selected_duration]
-        # # duration = duration_options[selected_duration]
-        st.write(duration)
-
+        display_plot('CLOSE', selected_durations_values)
         display_plot('CLOSE', duration)
 
 
