@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import os
@@ -203,7 +204,7 @@ if section == 'Other Financial Options' and st.session_state.master_df_created:
 
 
 if section == 'Moving Average' and st.session_state.master_df_created:
-      def extract_data_from_uploaded_files(uploaded_files, selected_symbol):
+    def extract_data_from_uploaded_files(uploaded_files, selected_symbol):
         df_lists = []
         for uploaded_file in uploaded_files:
             with zipfile.ZipFile(uploaded_file, 'r') as zip_ref:
@@ -263,6 +264,4 @@ if section == 'Moving Average' and st.session_state.master_df_created:
 
     if st.sidebar.button('Display plot'):
         display_plot('CLOSE', selected_durations_values)
-        display_plot('CLOSE', duration)
-
 
